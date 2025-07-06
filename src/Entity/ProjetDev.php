@@ -11,19 +11,24 @@ use ApiPlatform\Metadata\Delete;
 use App\Repository\ProjetDevRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\HttpFoundation\File\File;
+use Vich\UploaderBundle\Mapping\Annotation as Vich;
 
 #[ORM\Entity(repositoryClass: ProjetDevRepository::class)]
 #[ApiResource(
     operations: [
         new Get(),
         new GetCollection(),
-        new Post(),
+        new Post(
+            inputFormats: ['multipart' => ['multipart/form-data']]
+        ),
         new Put(),
         new Delete()
     ],
     normalizationContext: ['groups' => ['projetdev:read']],
     denormalizationContext: ['groups' => ['projetdev:write']]
 )]
+#[Vich\Uploadable]
 class ProjetDev
 {
     #[ORM\Id]
@@ -44,9 +49,16 @@ class ProjetDev
     #[Groups(['projetdev:read', 'projetdev:write'])]
     private array $technologie = [];
 
+    #[Vich\UploadableField(mapping: 'projetdev_image', fileNameProperty: 'imageName')]
+    #[Groups(['projetdev:write'])]
+    private ?File $imageFile = null;
+
     #[ORM\Column(length: 255, nullable: true)]
     #[Groups(['projetdev:read', 'projetdev:write'])]
-    private ?string $imageUrl = null;
+    private ?string $imageName = null;
+
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $updatedAt = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     #[Groups(['projetdev:read', 'projetdev:write'])]
@@ -102,16 +114,28 @@ class ProjetDev
         return $this;
     }
 
-    public function getImageUrl(): ?string
+    public function getImageFile(): ?File
     {
-        return $this->imageUrl;
+        return $this->imageFile;
     }
 
-    public function setImageUrl(?string $imageUrl): static
+    public function setImageFile(?File $imageFile = null): static
     {
-        $this->imageUrl = $imageUrl;
-
+        $this->imageFile = $imageFile;
+        if ($imageFile) {
+            $this->updatedAt = new \DateTimeImmutable();
+        }
         return $this;
+    }
+
+    public function getImageName(): ?string
+    {
+        return $this->imageName;
+    }
+
+    public function setImageName(?string $imageName): void
+    {
+        $this->imageName = $imageName;
     }
 
     public function getWebsiteLink(): ?string
